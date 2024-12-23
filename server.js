@@ -26,11 +26,12 @@ wss.on('connection', (ws) => {
             case 'create_room':
                 create_room(ws, data.room_id);  // Pass the roomId to the createRoom function
                 break;
-
             case 'join_room':
                 join_room(ws, data.room_id);   // Join room logic remains unchanged
                 break;
-
+            case 'leave_room': // New case for leaving the room
+                leave_room(ws, data.room_id);
+                break;
             case 'make_move':
                 make_move(ws, data.room_id, data.column);  // Make move logic
                 break;
@@ -77,6 +78,24 @@ function join_room(ws, room_id) {
         ws.send(JSON.stringify({ success: true, message: 'Joined the room successfully.' }));
     } else {
         ws.send(JSON.stringify({ success: false, message: 'Room is full or does not exist.' }));
+    }
+}
+
+function leave_room(ws, room_id) {
+    if (rooms[room_id]) {
+        rooms[room_id].players = rooms[room_id].players.filter(player => player !== ws);
+
+        // Notify remaining players if any
+        if (rooms[room_id].players.length === 0) {
+            delete rooms[room_id]; // Delete the room if no players are left
+        } else {
+            rooms[room_id].players.forEach((player_ws) => {
+                player_ws.send(JSON.stringify({
+                    type: 'player_disconnected',
+                    player_name: ws.name
+                }));
+            });
+        }
     }
 }
 
@@ -142,4 +161,4 @@ function generate_user_id(max) {
     return new_id
 }
  
-console.log(`WebSocket server is running on https://${process.env.PROJECT_DOMAIN || 'localhost'}:${3000}`);
+console.log(`WebSocket server is running on https://${process.env.PROJECT_DOMAIN + ".glitch.me" || 'localhost:3000'}`);

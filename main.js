@@ -65,6 +65,11 @@ function connect_to_online_server() {
         socket.send(JSON.stringify({ type: "set_player_name", name: server_name }));
         updateNetworkStatus(`Connected to the server, Welcome ${server_name}`);
         server_data.is_connected_online = true;
+
+        document.getElementById("connect_to_server").style.display = 'none';
+        document.getElementById("disconnect_from_online_server").style.display = 'block';
+        document.getElementById('create_online_room').style.display = 'block';
+        document.getElementById('join_online_room').style.display = 'block';
     };
 
     socket.onerror = function (error) {
@@ -77,6 +82,11 @@ function connect_to_online_server() {
 
         setTimeout( () => {updateNetworkStatus("")}, 3 * 1000)
         server_data.is_connected_online = false;
+
+        document.getElementById("connect_to_server").style.display = 'block';
+        document.getElementById("disconnect_from_online_server").style.display = 'none';
+        document.getElementById('create_online_room').style.display = 'none';
+        document.getElementById('join_online_room').style.display = 'none';
     };
 
     // Handle incoming messages (server broadcasts)
@@ -124,12 +134,15 @@ function send_web_socket_message(type, data) {
 }
 
 function create_online_room() {
+    // Leave the current room if already in one
+    if (server_data.room_id) {
+        leave_current_room();
+    }
+
     // Prompt the user to enter a custom room ID
     server_data.room_id = prompt('Enter a custom Room ID:');
     
-    // Check if the room ID is provided and valid
     if (server_data.room_id && server_data.room_id.trim() !== "") {
-        // Send a message to the server to create a room with the provided room ID
         const message = JSON.stringify({ type: 'create_room', room_id: server_data.room_id.trim() });
         socket.send(message);
     } else {
@@ -138,9 +151,25 @@ function create_online_room() {
 }
 
 function join_online_room() {
+    // Leave the current room if already in one
+    if (server_data.room_id) {
+        leave_current_room();
+    }
+
     server_data.room_id = prompt('Enter Room ID:');
-    const message = JSON.stringify({ type: 'join_room', room_id: server_data.room_id });
-    socket.send(message); // Send a message to join a room
+    if (server_data.room_id && server_data.room_id.trim() !== "") {
+        const message = JSON.stringify({ type: 'join_room', room_id: server_data.room_id.trim() });
+        socket.send(message);
+    } else {
+        alert("Please enter a valid Room ID.");
+    }
+}
+
+function leave_current_room() {
+    const message = JSON.stringify({ type: 'leave_room', room_id: server_data.room_id });
+    socket.send(message);
+    server_data.room_id = null;
+    is_playing = false;
 }
 
 // Handle the start of the game (when both players are in the room)
